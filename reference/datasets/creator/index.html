@@ -255,12 +255,148 @@
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">get_dataset</span><span class="p">(</span><span class="n">label_source</span><span class="p">,</span> <span class="n">trange</span><span class="p">,</span> <span class="n">resample</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">get_dataset</span><span class="p">(</span><span class="n">label_source</span><span class="p">,</span> <span class="n">trange</span><span class="p">,</span> <span class="n">resample</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">var_list</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mms1_dis_dist_fast&#39;</span><span class="p">])</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Get a dataset based on a given config.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>label_source</code>
+            </td>
+            <td>
+                  <code><span title="string">string</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The source for the labels, either Olshevsky or Unlabeled.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>trange</code>
+            </td>
+            <td>
+                  <code><span title="List">List</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List with the start and end times for the dataset. The times should
+be strings and can have either the format YYYY-mm-DD or YYYY-mm-DD/HH:MM:SS</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>resample</code>
+            </td>
+            <td>
+                  <code><span title="string">string</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The resample frequency, this varible follow the rules from the
+<a href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.resample.html">pandas resample function</a>.
+Cannot be used with label_source set to Olshevsky.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>clean</code>
+            </td>
+            <td>
+                  <code><span title="Bool">Bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If unknown (-1) labels should be removed.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>samples</code>
+            </td>
+            <td>
+                  <code><span title="Integer">Integer</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The number of samples per label, set to 0 for all samples.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>var_list</code>
+            </td>
+            <td>
+                  <code><span title="List">List</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of varibles to get from the CDF-files</p>
+              </div>
+            </td>
+            <td>
+                  <code>[&#39;mms1_dis_dist_fast&#39;]</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A pandas DataFrame with the created dataset.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
     </div>
 
@@ -280,6 +416,85 @@
     <div class="doc doc-contents ">
 
         <p>Create a dataset file based on given config.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>dataset_path</code>
+            </td>
+            <td>
+                  <code><span title="string">string</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to store dataset, end with either .csv or .feather.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>trange</code>
+            </td>
+            <td>
+                  <code><span title="List">List</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List with the start and end times for the dataset. The times should
+be strings and can have either the format YYYY-mm-DD or YYYY-mm-DD/HH:MM:SS</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>force</code>
+            </td>
+            <td>
+                  <code><span title="Bool">Bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Overwrite exisiting file if one exists.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Futher arguments, passed directy to get_dataset(..)</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
     </div>
 

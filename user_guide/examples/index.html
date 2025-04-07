@@ -231,7 +231,7 @@
 <h2 id="01_create_new_datasetpy">01_create_new_dataset.py</h2>
 <p>Creates a new dataset of MMS plasma distribution data
 using Olshevsky labels.</p>
-<pre><code>from spacephyml.creator import create_dataset
+<pre><code>from spacephyml.datasets.creator import create_dataset
 
 create_dataset('./mms_region.csv',
                trange=['2017-12-04/05:00:00','2017-12-04/15:00:00'],
@@ -247,23 +247,44 @@ from torch.utils.data import DataLoader
 from spacephyml.datasets.mms import MMS1IonDistLabeled
 from spacephyml.models.mms import PCReduced
 
+device = (
+    &quot;cuda&quot;
+    if torch.cuda.is_available()
+    else &quot;mps&quot;
+    if torch.backends.mps.is_available()
+    else &quot;cpu&quot;
+)
+
 dataset = MMS1IonDistLabeled('SCNov2017')
-model = PCReduced(seed='42')
+model = PCReduced('s42').to(device)
 
 labels = {'human': [], 'classifier': []}
+correct = 0
 with torch.no_grad():
-    for x,l, _, in DataLoader(dataset, batch_size=32):
-        lc = model(x)
+    for x,l in DataLoader(dataset, batch_size=32):
+        lc = model(x.to(device)).to('cpu')
+        lc = torch.argmax(lc, axis = 1)
+        correct += torch.sum(lc==l)
         labels['human'].extend(l)
         labels['classifier'].extend(lc)
+    print(f'Accuracy: {correct/len(labels['human'])}')
 </code></pre>
 <h2 id="03_classify_mms_regionpy">03_classify_mms_region.py</h2>
 <p>Classifying MMS dayside space plasma regions</p>
-<pre><code>from torch.utils.data import DataLoader
+<pre><code>import torch
+from torch.utils.data import DataLoader
 from spacephyml.datasets.general.mms import ExternalMMSData
 from spacephyml.models.mms import PCReduced
-from spacephyml.creator import create_dataset
+from spacephyml.datasets.creator import create_dataset
 from spacephyml.transforms import MMS1IonDistLabeled_Transform
+
+device = (
+    &quot;cuda&quot;
+    if torch.cuda.is_available()
+    else &quot;mps&quot;
+    if torch.backends.mps.is_available()
+    else &quot;cpu&quot;
+)
 
 create_dataset('./mms_region.csv',
                trange=['2017-12-04/05:00:00','2017-12-04/15:00:00'],
@@ -272,24 +293,27 @@ create_dataset('./mms_region.csv',
 
 dataset = ExternalMMSData('./mms_region.csv',
                           transform = MMS1IonDistLabeled_Transform())
-model = PCReduced()
 
-labels = {'human': [], 'classifier': []}
-for x,l, _, in DataLoader(dataset, batch_size=32, shuffle = True):
-    lc = model(x)
+model = PCReduced('s42').to(device)
+
+labels = {'human': [], 'classifier': [], 'epoch': []}
+for x, l, epoch in DataLoader(dataset, batch_size=32):
+    lc = model(x.to(device)).to('cpu')
     labels['human'].extend(l)
     labels['classifier'].extend(lc)
+    labels['epoch'].extend(epoch)
 </code></pre>
 <h2 id="04_train_new_modelspy">04_train_new_models.py</h2>
 <p>Train a new PCReduced model using the PCNov2017 dataset.</p>
 <pre><code>
 import torch
+from torch import nn, optim
 from torch.utils.data import DataLoader
 from spacephyml.datasets.mms import MMS1IonDistLabeled
 from spacephyml.models.arcs.mms import PCReduced_arc, PCBaseline_arc
 
 _VERBOSE = True
-_EPOCHS = 50
+_EPOCHS = 5
 _LEARNING_RATE = 1e-5
 _BATCH_SIZE = 32
 
@@ -312,7 +336,7 @@ def train_loop(dataloader, model, loss_fn, optimizer, batch_size, device):
             print(f&quot;loss: {loss:&gt;7f}  [{current:&gt;5d}/{size:&gt;5d}]&quot;)
 
 
-def train_model(model, dataset, device=&quot;cpu&quot;):
+def train_model(model, dataset, batch_size = _BATCH_SIZE, device=&quot;cpu&quot;):
 
     dataloader_train = DataLoader(dataset, batch_size = _BATCH_SIZE, shuffle=True)
 
@@ -351,8 +375,8 @@ def main(seed):
     torch.save(model.classifier.state_dict(), f&quot;./model_PCBaseline_s{seed}.ptk&quot;)
 
 if __name__ == &quot;__main__&quot;:
-    for seed in [42, 84, 168, 336]:
-        main(seed)
+    seed = 42
+    main(seed)
 </code></pre></div>
             </div>
         </div>

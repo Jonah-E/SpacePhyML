@@ -228,9 +228,24 @@
 <p>Create a dataset through the commandline tool using the dataset generator.</p>
 <pre><code>spacephyml create my_dataset.csv
 </code></pre>
+<p>Load the dataset in your python script, alternativly you can use one of the already exisiting <a href="../user_guide/datasets_mms/">datasets</a>.</p>
 <pre><code>from spacephyml.datasets.general.mms import ExternalMMSData
 
 dataset = ExternalMMSData('my_dataset.csv')
+</code></pre>
+<p>Load a model and classify the data.</p>
+<pre><code>from spacephyml.models.mms import PCReduced
+model = PCReduced('s42')
+
+labels = {'human': [], 'classifier': [], 'epoch': []}
+
+with torch.no_grad():
+    for x, l, e in DataLoader(dataset, batch_size=32):
+        lc = model(x)
+        lc = torch.argmax(lc, axis = 1)
+        labels['human'].extend(l)
+        labels['classifier'].extend(lc)
+        labels['epoch'].extend(e)
 </code></pre></div>
             </div>
         </div>
