@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
         <meta name="author" content="Jonah Ekelund">
-        
+        <link rel="canonical" href="https://jonah-e.github.io/SpacePhyML/quick_start/">
         <link rel="shortcut icon" href="../img/favicon.ico">
         <title>Quick Start - SpacePhyML</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
@@ -228,9 +228,9 @@
 <p>Create a dataset through the commandline tool using the dataset generator.</p>
 <pre><code>spacephyml create my_dataset.csv
 </code></pre>
-<pre><code>from spacephyml.datasets import MMSDataset
+<pre><code>from spacephyml.datasets.general.mms import ExternalMMSData
 
-dataset = MMSDataset('my_dataset.csv')
+dataset = ExternalMMSData('my_dataset.csv')
 </code></pre></div>
             </div>
         </div>
