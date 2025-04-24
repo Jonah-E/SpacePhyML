@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="description" content="SpacePhyML Documentation">
         <meta name="author" content="Jonah Ekelund">
-        <link rel="canonical" href="https://jonah-e.github.io/SpacePhyML/">
+        <link rel="canonical" href="https://asap-space.github.io/SpacePhyML/">
         <link rel="shortcut icon" href="img/favicon.ico">
         <title>SpacePhyML</title>
         <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -182,7 +182,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="https://github.com/Jonah-E/SpacePhyML/edit/master/docs/index.md" class="nav-link"><i class="fa-brands fa-github"></i> Edit on GitHub</a>
+                                <a href="https://github.com/asap-space/SpacePhyML/edit/master/docs/index.md" class="nav-link"><i class="fa-brands fa-github"></i> Edit on GitHub</a>
                             </li>
                     </ul>
                 </div>
@@ -208,7 +208,7 @@
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-bs-level="2"><a href="#contributions" class="nav-link">Contributions</a>
+            <li class="nav-item" data-bs-level="2"><a href="#how-to-contribute" class="nav-link">🤝 How to Contribute</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -233,13 +233,39 @@ Youtube: <a href="https://www.youtube.com/@ASAP-space-eu">youtube.com/@ASAP-spac
 <p><img src="assets/Flag_of_Europe.svg" alt="Flag" style="float:left; margin:10px" width="50px"></p>
 <p><em>ASAP has received funding from the European Union’s HORIZON Research and Innovation Action under the Grant Agreement No 101082633. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union.</em></p>
 <hr />
-<h2 id="contributions">Contributions</h2></div>
+<h2 id="how-to-contribute">🤝 How to Contribute</h2>
+<p>Thank you for considering contributing to this project! 🎉
+Whether it’s a bug report, feature suggestion, or a pull request — we appreciate it.</p>
+<p>If you have improvements you want to make, open a issue with the tag 'enhancment' and explain the improvment. We'll check your suggestion to see that it is in line with the vision for SpacePhyML and if it have any synergy with other work ongoing. Once you have the go ahead, you can implement your improvment and create a pull request.</p>
+<p>If you have a dataset and/or model you want to add to the framework the general process is the same as for imporovments. However, there are some considerations:</p>
+<ul>
+<li>
+<p><strong>Dataset</strong>: Create a file in the <code>datasets</code> folder, here you can create a class to download and extract your dataset. The class should be a valid torch dataset class. If possible use the general classes available.</p>
+</li>
+<li>
+<p><strong>Models:</strong></p>
+<ol>
+<li>Create a file with the model architecture in the <code>models/arc</code> folder. The architecture should inherit from the torch.nn.Module class.</li>
+<li>Create a file in the <code>models/</code> folder with a class for a pre-trained version of your model inheriting from your architecture. This class should also download and extract the necessarily files for the trained parameters.</li>
+</ol>
+</li>
+</ul>
+<p>You can look at the existing models and datasets for inspiration.</p>
+<p>If you have an source for data labels you want to add the dataset creator, please open an issue and we can discuss how to best include this. The creator is currently under development and is very influenced by the first use-case it was developed for.</p>
+<h3 id="quick-guide-for-code-changes">Quick guide for code changes.</h3>
+<ol>
+<li><strong>Fork the repository</strong></li>
+<li><strong>Clone your fork locally</strong></li>
+<li><strong>Make your additions and imporovments</strong></li>
+<li><strong>Push the change to your fork</strong></li>
+<li><a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork"><strong>Create a pull request from your fork</strong></a></li>
+</ol></div>
             </div>
         </div>
 
         <footer class="col-md-12">
             <hr>
-                <p>Copyright &copy; 2024 Jonah Ekelund</p>
+                <p>Copyright &copy; 2025 Automatics in Space Exploration (ASAP)</p>
             <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
         </footer>
         <script src="js/bootstrap.bundle.min.js"></script>
@@ -316,5 +342,5 @@ Youtube: <a href="https://www.youtube.com/@ASAP-space-eu">youtube.com/@ASAP-spac
 
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2025-04-07 11:41:45.873347+00:00
+Build Date UTC : 2025-04-24 15:09:14.798485+00:00
 -->

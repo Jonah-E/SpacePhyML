@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
         <meta name="author" content="Jonah Ekelund">
-        <link rel="canonical" href="https://jonah-e.github.io/SpacePhyML/reference/datasets/mms/">
+        <link rel="canonical" href="https://asap-space.github.io/SpacePhyML/reference/datasets/mms/">
         <link rel="shortcut icon" href="../../../img/favicon.ico">
         <title>mms - SpacePhyML</title>
         <link href="../../../css/bootstrap.min.css" rel="stylesheet">
@@ -182,7 +182,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="https://github.com/Jonah-E/SpacePhyML/edit/master/docs/spacephyml/datasets/mms.py" class="nav-link"><i class="fa-brands fa-github"></i> Edit on GitHub</a>
+                                <a href="https://github.com/asap-space/SpacePhyML/edit/master/docs/spacephyml/datasets/mms.py" class="nav-link"><i class="fa-brands fa-github"></i> Edit on GitHub</a>
                             </li>
                     </ul>
                 </div>
@@ -258,7 +258,7 @@
               Bases: <code><a class="autorefs autorefs-internal" title=" ExternalMMSData (spacephyml.datasets.general.mms.ExternalMMSData)" href="../general/mms/#spacephyml.datasets.general.mms.ExternalMMSData">ExternalMMSData</a></code></p>
 
 
-        <p>This dataset contains two versions samled from labels created by Olshevsky, et. al. (2021)[^1]. The data samples in this dataset have one of the following labels:</p>
+        <p>This dataset contains two versions samled from labels created by Olshevsky, et. al. (2021)<sup id="spacephyml.datasets.mms.MMS1IonDistLabeled--fnref:1"><a class="footnote-ref" href="#spacephyml.datasets.mms.MMS1IonDistLabeled--fn:1">1</a></sup>. The data samples in this dataset have one of the following labels:</p>
 <table>
 <thead>
 <tr>
@@ -286,13 +286,7 @@
 </tbody>
 </table>
 <p>There are 10,000 samples for each label, for a total of 40,000 samples in each version of the dataset.</p>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">spacephyml.datasets.mms</span><span class="w"> </span><span class="kn">import</span> <span class="n">MMS1IonDistLabeled</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">MMS1IonDistLabeled</span><span class="p">(</span><span class="s1">&#39;SCDec017&#39;</span><span class="p">)</span>
-</code></pre></div>
-        <div class="footnote">
+<div class="footnote">
 <hr />
 <ol>
 <li id="spacephyml.datasets.mms.MMS1IonDistLabeled--fn:1">
@@ -300,6 +294,12 @@
 </li>
 </ol>
 </div>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">spacephyml.datasets.mms</span><span class="w"> </span><span class="kn">import</span> <span class="n">MMS1IonDistLabeled</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">MMS1IonDistLabeled</span><span class="p">(</span><span class="s1">&#39;SCDec017&#39;</span><span class="p">)</span>
+</code></pre></div>
 
 
 
@@ -453,7 +453,7 @@ storage.</p>
 
         <footer class="col-md-12">
             <hr>
-                <p>Copyright &copy; 2024 Jonah Ekelund</p>
+                <p>Copyright &copy; 2025 Automatics in Space Exploration (ASAP)</p>
             <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
         </footer>
         <script src="../../../js/bootstrap.bundle.min.js"></script>
