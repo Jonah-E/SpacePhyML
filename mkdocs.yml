@@ -1,11 +1,10 @@
 site_name: SpacePhyML
-site_url: https://asap-space.github.io/SpacePhyML/
+site_url: https://jonah-e.github.io/SpacePhyML/
 site_author: Jonah Ekelund
 site_description: SpacePhyML Documentation
-copyright: Copyright &copy; 2025 Automatics in Space Exploration (ASAP)
+copyright: Copyright &copy; 2024 Jonah Ekelund
 
-
-repo_url: https://github.com/asap-space/SpacePhyML
+repo_url: https://github.com/Jonah-E/SpacePhyML
 
 nav:
   - Home: index.md

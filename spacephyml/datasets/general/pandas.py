@@ -65,7 +65,7 @@ class PandasDataset(Dataset):
 
         sample = [data]
         if self.label_column:
-            label = np.array(self.dataset.iloc[idx][self.label_column])
+            label = np.array([f for f in self.dataset.iloc[idx][self.label_column]])
             sample.append(label)
 
         if self.return_index:

@@ -2,7 +2,7 @@
 
 SpacePhyML is a framework for working with space physics datasets. It aims to bring togheter already existing datasets for ease of usage and enable the simple creation of new datasets in the future. It is built on the torch dataset class but can be used in Tensorflow.
 
-You can find the full documentation at [https://asap-space.github.io/SpacePhyML/](https://asap-space.github.io/SpacePhyML/).
+You can find the full documentation at [https://jonah-e.github.io/SpacePhyML/](https://jonah-e.github.io/SpacePhyML/).
 
 ## Quick Start
 
