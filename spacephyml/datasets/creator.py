@@ -36,6 +36,13 @@ Journal of Geophysical Research: Space Physics,
 https://doi.org/10.1029/2021JA029620
 """
 
+_OLSHEVSKY_LABELS = {
+    -1 : 'Undefined',
+    0 : 'Solar Wind',
+    1 : 'Ion foreshock',
+    2 : 'Magnetosheath',
+    3 : 'Magnetosphere',
+}
 
 def _get_var_info(trange, var, epochs=None):
     # The MMS Data API takes the end date as exclusive
@@ -87,14 +94,14 @@ def _get_var_info(trange, var, epochs=None):
     return files_add, epochs_add
 
 
-def _get_olshevsky_label_list(trange=None, var_list=None, resample=None):
+def _get_olshevsky_label_list(trange=None, var_list=None):
     """
     Get a pandoc DataFrame containing all the Olshevsky labels from within the
     given time range.
     """
 
-    if resample is not None:
-        raise ValueError('Resampling is not supported for Olshevsky labels')
+    print('Generating a mms dataset based on labels from ')
+    print(f'\t{_OLSHEVSKY_REF}')
 
     droped_rows = 0
 
@@ -157,6 +164,43 @@ def _get_olshevsky_label_list(trange=None, var_list=None, resample=None):
     print(f'{droped_rows} samples droped due to invalid data')
     return data.reset_index(drop=True).drop(columns=['date'])
 
+def _get_olshevsky_labeled_dataset(trange, var_list=None, resample=None):
+    """
+    Get a list of data in a given timerange.
+    """
+
+    if resample is not None:
+        if not (resample == '4.5s'):
+            raise ValueError('Resampling for Olshevsky labels only ' +
+                             'support 4.5s, same frequency as labels')
+
+        df_full = _get_olshevsky_label_list(trange, var_list)
+        df_full = df_full[['Time','label']]
+        df_full = df_full.set_index('Time')
+        for i, var in enumerate(var_list):
+            print(f'Processing varible: {var}')
+            if var not in _VAR_TO_FILE_INFO:
+                raise ValueError(f'Invalid var requested: {var}')
+
+            df_full = df_full.join(
+                _get_var(trange, var), how='outer')
+
+        df_full = df_full.resample(resample).mean()
+
+        df_full = df_full.sort_index()
+
+        df_full = df_full.loc[(trange[0] <= df_full.index) &
+                              (df_full.index < trange[1])]
+
+        df_full['label str'] = df_full['label'].replace(_OLSHEVSKY_LABELS)
+    else:
+        df_full = _get_olshevsky_label_list(trange, var_list)
+
+    droped_rows = len(df_full)
+    df_full = df_full.dropna()
+    droped_rows -= len(df_full)
+    print(f'{droped_rows} samples droped due to invalid data')
+    return df_full
 
 def _get_var(trange, var):
 
@@ -277,6 +321,18 @@ _VAR_TO_FILE_INFO = {
             'datatype': 'dis-moms',
             'instrument': 'fpi'},
         'mapping': [(f'Ion Spec. {i}', i) for i in range(32)]},
+    'mms1_dis_energy_fast': {
+        'info': {
+            'data_rate': 'fast',
+            'datatype': 'dis-moms',
+            'instrument': 'fpi'},
+        'mapping': [(f'Ion Bin Centers {i}', i) for i in range(32)]},
+    'mms1_dis_energy_delta_fast': {
+        'info': {
+            'data_rate': 'fast',
+            'datatype': 'dis-moms',
+            'instrument': 'fpi'},
+        'mapping': [(f'Ion Bin Delta {i}', i) for i in range(32)]},
     'mms1_dis_bulkv_gse_fast': {
         'info': {
             'data_rate': 'fast',
@@ -308,6 +364,11 @@ _VAR_TO_FILE_INFO = {
         'mapping': [('Bx', 0), ('By', 1), ('Bz', 2)]}
 }
 
+_LABEL_SOURCES = {
+    'Olshevsky' : _get_olshevsky_labeled_dataset,
+    'Unlabeled' : _get_unlabeled_dataset,
+}
+
 
 def get_dataset(label_source, trange, resample=None, clean=True, samples=0,
                 var_list=['mms1_dis_dist_fast']):
@@ -337,17 +398,12 @@ def get_dataset(label_source, trange, resample=None, clean=True, samples=0,
         else:
             raise ValueError(f'Incorrect datetime format: {t}')
 
-    if label_source == 'Olshevsky':
-        print('Generating a mms dataset based on labels from ')
-        print(f'\t{_OLSHEVSKY_REF}')
-        dataset = _get_olshevsky_label_list(trange, resample=resample,
+    if label_source in _LABEL_SOURCES:
+        dataset = _LABEL_SOURCES[label_source](trange, resample=resample,
                                             var_list=var_list)
-
-    elif label_source == 'Unlabeled':
-        dataset = _get_unlabeled_dataset(trange, resample=resample, var_list=var_list)
-
     else:
-        raise ValueError(f'Incorrect label_source ({label_source})')
+        raise ValueError(f'Incorrect label_source ({label_source}), ' +
+                         f'valid options are: {list(_LABEL_SOURCES.keys())}')
 
     if clean:
         dataset = dataset.loc[dataset['label'] != -1]
