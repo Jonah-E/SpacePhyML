@@ -1,6 +1,7 @@
 from os import makedirs
 
 from torch import load as torch_load
+from torch import device as torch_device
 
 from .arcs.mms import PCReduced_arc, PCBaseline_arc
 from ..utils.file_download import missing_files, download_file_with_status
@@ -48,7 +49,8 @@ class PCBaseline(PCBaseline_arc):
             makedirs(path, exist_ok=True)
             download_file_with_status(self._models[model]['url'], filepath)
 
-        self.classifier.load_state_dict(torch_load(filepath, weights_only=True))
+        self.classifier.load_state_dict(torch_load(filepath, weights_only=True,
+                                                    map_location=torch_device('cpu')))
 
 class PCReduced(PCReduced_arc):
     """
@@ -94,4 +96,5 @@ class PCReduced(PCReduced_arc):
             makedirs(path, exist_ok=True)
             download_file_with_status(self._models[model]['url'], filepath)
 
-        self.classifier.load_state_dict(torch_load(filepath, weights_only=True))
+        self.classifier.load_state_dict(torch_load(filepath, weights_only=True,
+                                                    map_location=torch_device('cpu')))
