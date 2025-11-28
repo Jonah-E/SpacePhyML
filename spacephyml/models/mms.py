@@ -48,7 +48,8 @@ class PCBaseline(PCBaseline_arc):
             makedirs(path, exist_ok=True)
             download_file_with_status(self._models[model]['url'], filepath)
 
-        self.classifier.load_state_dict(torch_load(filepath, weights_only=True))
+        self.classifier.load_state_dict(torch_load(filepath, weights_only=True,
+                                                    map_location=torch.device('cpu')))
 
 class PCReduced(PCReduced_arc):
     """
@@ -94,4 +95,5 @@ class PCReduced(PCReduced_arc):
             makedirs(path, exist_ok=True)
             download_file_with_status(self._models[model]['url'], filepath)
 
-        self.classifier.load_state_dict(torch_load(filepath, weights_only=True))
+        self.classifier.load_state_dict(torch_load(filepath, weights_only=True,
+                                                    map_location=torch.device('cpu')))
