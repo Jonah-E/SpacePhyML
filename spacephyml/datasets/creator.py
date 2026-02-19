@@ -405,7 +405,7 @@ def get_dataset(label_source, trange, resample=None, clean=True, samples=0,
         raise ValueError(f'Incorrect label_source ({label_source}), ' +
                          f'valid options are: {list(_LABEL_SOURCES.keys())}')
 
-    if clean:
+    if clean and label_source != 'Unlabeled':
         dataset = dataset.loc[dataset['label'] != -1]
 
     if samples > 0:
