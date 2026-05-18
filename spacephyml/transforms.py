@@ -4,6 +4,69 @@ Different useful transforms.
 import numpy as np
 from torch import unsqueeze, from_numpy
 
+class FeatureCoupledMinMaxScaler():
+    """
+    Scaling the data according to Min and Max values for that feature.
+
+    Examples:
+        >>> from detector import FeatureCoupledMinMaxScaler
+        >>> features = [(0,3),(3,6)]
+        >>> scaler = FeatureCoupledMinMaxScaler(features)
+        >>> scaler.fit(x)
+        >>> x = scaler.transform(x)
+    """
+    def __init__(self, features, feature_range = (0,1)):
+        """
+
+        Args:
+            fetaures (list[tuple]):
+                List of tuples with the ranges, [start, end), where each feature type can be found.
+            feature_range (tuple):
+                The range to scale between, [min, max].
+        """
+        self.features = features
+        self._max = [0 for _ in features]
+        self._min = [0 for _ in features]
+        self._scale = [0 for _ in features]
+        self.feature_range = feature_range
+
+
+    def fit(self, x):
+        """
+        Fit scaler to data.
+
+        Args:
+            x (ndarray):
+                The data to fit, shape (n_samples, n_features)
+
+        Returns:
+            self : object
+                The fitted scaler.
+        """
+        for i, (i1, i2) in enumerate(self.features):
+            self._min[i] = np.min(x[:,i1:i2])
+            self._max[i] = np.max(x[:,i1:i2])
+            data_range = self._max[i] - self._min[i]
+            self._scale[i] = (self.feature_range[1] - self.feature_range[0]) / data_range
+            self._min[i] = self.feature_range[0] - self._min[i] * self._scale[i]
+
+        return self
+
+    def transform(self, x):
+        """
+        Scale data according to scaler.
+
+        Args:
+            x (ndarray):
+                The data to scale, shape (n_samples, n_features)
+
+        Returns:
+            (ndarray):
+                The scaled version of x,  of shape (n_samples, n_features)
+        """
+        for i, (i1, i2) in enumerate(self.features):
+            x[:,i1:i2] =  (x[:,i1:i2] * self._scale[i]) + self._min[i]
+        return x
 
 class Compose():
     """
@@ -39,7 +102,6 @@ class IonDist_Transform(Compose):
                          LogNorm(norm),
                          Roll(),
                          lambda x: unsqueeze(from_numpy(x), 0))
-
 
 class ZScoreNorm():
     """
