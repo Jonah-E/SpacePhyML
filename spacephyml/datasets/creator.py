@@ -247,71 +247,28 @@ def _get_var(trange, var, var_to_file_info):
 
     return df.sort_index()
 
-
-def _get_unlabeled_list(trange=None, var_list=None, var_to_file_info=None):
-    """
-    Get a pandoc DataFrame containing unlabeled epochs in a given
-    time range.
-    """
-
-    droped_rows = 0
-
-    # Grab relevant epochs from the first varible
-    _, epochs = _get_var_info(trange, var_list[0], var_to_file_info[var_list[0]])
-
-    data = pd.DataFrame({'epoch': epochs})
-    data['label'] = -1  # Everything is unlabeled
-    data['Time'] = pd.to_datetime(cdfepoch.unixtime(data['epoch']), unit='s')
-    data = data.loc[(trange[0] <= data['Time']) &
-                    (data['Time'] < trange[1])]
-
-    for i, var in enumerate(var_list):
-        print(f'Processing varible: {var}')
-        if var not in var_to_file_info:
-            raise ValueError(f'Invalid var requested: {var}')
-
-        files_add, epochs_add = _get_var_info(trange, var, var_to_file_info[var],
-                                              data['epoch'])
-
-        data[f'epoch {i}'] = epochs_add
-        data[f'file {i}'] = files_add
-        data[f'var_name {i}'] = var
-
-        # Drop rows where some varible could not be found
-        row_indexs = data.loc[data[f'epoch {i}'] == 0].index
-        droped_rows += len(row_indexs)
-        data.drop(row_indexs, inplace=True)
-
-    print(f'{droped_rows} samples droped due to invalid data')
-
-    data = data.sort_values(by='Time')
-    return data.reset_index(drop=True)
-
-
 def _get_unlabeled_dataset(trange, var_list, var_to_file_info, resample=None):
     """
     Get a list of data in a given timerange.
     """
 
+    df_full = pd.DataFrame()
+    for i, var in enumerate(var_list):
+        print(f'Processing varible: {var}')
+        if var not in var_to_file_info:
+            raise ValueError(f'Invalid var requested: {var}')
+
+        df_full = df_full.join(
+            _get_var(trange, var, var_to_file_info[var]), how='outer')
+
     if resample is not None:
-        df_full = pd.DataFrame()
-        for i, var in enumerate(var_list):
-            print(f'Processing varible: {var}')
-            if var not in var_to_file_info:
-                raise ValueError(f'Invalid var requested: {var}')
-
-            df_full = df_full.join(
-                _get_var(trange, var, var_to_file_info[var]), how='outer')
-
         df_full = df_full.resample(resample).mean()
 
-        df_full['label'] = -1
-        df_full = df_full.sort_index()
+    df_full['label'] = -1
+    df_full = df_full.sort_index()
 
-        df_full = df_full.loc[(trange[0] <= df_full.index) &
-                              (df_full.index < trange[1])]
-    else:
-        df_full = _get_unlabeled_list(trange, var_list, var_to_file_info)
+    df_full = df_full.loc[(trange[0] <= df_full.index) &
+                          (df_full.index < trange[1])]
 
     return df_full.dropna()
 
