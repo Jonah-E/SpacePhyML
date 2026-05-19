@@ -3,3 +3,11 @@ pandas
 requests
 cdflib
 tqdm
+pyarrow
+scikit-learn
+
+# For development and testing
+flake8
+pytest
+pytest-mock
+requests-mock

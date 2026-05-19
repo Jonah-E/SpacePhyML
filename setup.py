@@ -20,6 +20,7 @@ setup(
                       'cdflib',
                       'tqdm',
                       'pyarrow',
+                      'scikit-learn',
                       ],
 
     classifiers=[
