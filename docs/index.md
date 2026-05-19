@@ -23,5 +23,30 @@ Youtube: [youtube.com/@ASAP-space-eu](https://www.youtube.com/@ASAP-space-eu)
 
 ---
 
-## Contributions
+## 🤝 How to Contribute
 
+Thank you for considering contributing to this project! 🎉
+Whether it’s a bug report, feature suggestion, or a pull request — we appreciate it.
+
+
+If you have improvements you want to make, open a issue with the tag 'enhancment' and explain the improvment. We'll check your suggestion to see that it is in line with the vision for SpacePhyML and if it have any synergy with other work ongoing. Once you have the go ahead, you can implement your improvment and create a pull request.
+
+If you have a dataset and/or model you want to add to the framework the general process is the same as for imporovments. However, there are some considerations:
+
+- **Dataset**: Create a file in the `datasets` folder, here you can create a class to download and extract your dataset. The class should be a valid torch dataset class. If possible use the general classes available.
+
+- **Models:**
+    1. Create a file with the model architecture in the `models/arc` folder. The architecture should inherit from the torch.nn.Module class.
+    2. Create a file in the `models/` folder with a class for a pre-trained version of your model inheriting from your architecture. This class should also download and extract the necessarily files for the trained parameters.
+
+You can look at the existing models and datasets for inspiration.
+
+If you have an source for data labels you want to add the dataset creator, please open an issue and we can discuss how to best include this. The creator is currently under development and is very influenced by the first use-case it was developed for.
+
+### Quick guide for code changes.
+
+1. **Fork the repository**
+2. **Clone your fork locally**
+3. **Make your additions and imporovments**
+4. **Push the change to your fork**
+5. [**Create a pull request from your fork**](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork)

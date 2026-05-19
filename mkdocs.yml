@@ -47,7 +47,7 @@ plugins:
             show_source: false
             show_signature_annotations: true
             show_root_heading: false
-            parameter_headigs: true
+            parameter_headings: true
             heading_level: 2
             show_symbol_type_heading: true
             show_symbol_type_toc: true

@@ -2,8 +2,8 @@
 Script for creating dataset based on exisiting labels.
 """
 from argparse import ArgumentParser
-from .datasets.creator import create_dataset, _VAR_TO_FILE_INFO
-
+from .datasets.creator import create_dataset, _DEFAULT_VAR_TO_FILE_INFO
+from .utils.config import save_var_to_file_info
 
 def create_action(args):
     """
@@ -20,6 +20,7 @@ def create_action(args):
         'var_list': args.var,
         'resample': args.resample,
         'label_source': args.label_source,
+        'var_info_file': args.var_info_file,
     }
 
     create_dataset(args.output, trange, **kwargs)
@@ -32,6 +33,9 @@ def pars_args():
     parser = ArgumentParser()
 
     actions = parser.add_subparsers(dest="command")
+
+    export = actions.add_parser('export', help='Export config files.')
+    export.add_argument('--var-info-file', default="var_to_file_info.toml")
 
     create = actions.add_parser('create', help='Create a dataset')
     create.add_argument('--label_source', default='Olshevsky',
@@ -46,17 +50,21 @@ def pars_args():
     create.add_argument('--resample', default=None)
     create.add_argument('--var',
                         action='append',
-                        choices=_VAR_TO_FILE_INFO.keys())
+                        choices=_DEFAULT_VAR_TO_FILE_INFO.keys())
+    create.add_argument('--var-info-file', default=None)
     create.add_argument('output')
 
     args = parser.parse_args()
+
+    if args.command is None:
+        parser.print_help()
+        exit(1)
 
     print("Arguments:")
     for arg in vars(args):
         print(f" {arg}: {getattr(args, arg)}")
 
     return args
-
 
 def main():
     """
@@ -65,7 +73,8 @@ def main():
     args = pars_args()
     if args.command == 'create':
         create_action(args)
-
+    elif args.command == 'export':
+        save_var_to_file_info(_DEFAULT_VAR_TO_FILE_INFO, args.var_info_file)
 
 if __name__ == "__main__":
     main()

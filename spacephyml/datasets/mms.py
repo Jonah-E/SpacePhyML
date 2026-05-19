@@ -24,11 +24,12 @@ class MMS1IonDistLabeled(ExternalMMSData):
 
     There are 10,000 samples for each label, for a total of 40,000 samples in each version of the dataset.
 
+    [^1]: Olshevsky, V., et al. (2021). Automated classification of plasma regions using 3D particle energy distributions. Journal of Geophysical Research: Space Physics, https://doi.org/10.1029/2021JA029620
+
     Examples:
         >>> from spacephyml.datasets.mms import MMS1IonDistLabeled
         >>> dataset = MMS1IonDistLabeled('SCDec017')
 
-    [^1]: Olshevsky, V., et al. (2021). Automated classification of plasma regions using 3D particle energy distributions. Journal of Geophysical Research: Space Physics, https://doi.org/10.1029/2021JA029620
     """
 
     _valid_datasets = ['SCNov2017', 'SCDec2017']
