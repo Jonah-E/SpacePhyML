@@ -4,6 +4,7 @@ Script for creating dataset based on exisiting labels.
 import tempfile
 from os import path, makedirs, remove
 import datetime as dt
+from tqdm import tqdm
 from cdflib import cdfepoch
 
 import pandas as pd
@@ -12,6 +13,7 @@ import numpy as np
 from ..__init__ import _MMS_DATA_DIR
 from ..utils import read_cdf_file
 from ..utils.file_download import download_file_with_status, missing_files
+from ..utils.config import load_var_to_file_info
 from ..utils import mms
 
 _LABELS_URL_BASE = 'https://bitbucket.org/volshevsky/mmslearning/' + \
@@ -44,14 +46,14 @@ _OLSHEVSKY_LABELS = {
     3 : 'Magnetosphere',
 }
 
-def _get_var_info(trange, var, epochs=None):
+def _get_var_info(trange, var, var_to_file_info, epochs=None):
     # The MMS Data API takes the end date as exclusive
     trange = [trange[0].strftime("%Y-%m-%d"),
               (trange[1] + dt.timedelta(days=1)).strftime("%Y-%m-%d")]
 
     # Check which datafiles are relevant
     files = mms.get_file_list(trange[0], trange[1],
-                              **_VAR_TO_FILE_INFO[var]['info'])
+                              **var_to_file_info['info'])
     files = [f['file_name'] for f in files]
     filespaths = mms.filename_to_filepath(files)
 
@@ -94,7 +96,7 @@ def _get_var_info(trange, var, epochs=None):
     return files_add, epochs_add
 
 
-def _get_olshevsky_label_list(trange=None, var_list=None):
+def _get_olshevsky_label_list(trange=None, var_list=None, var_to_file_info=None):
     """
     Get a pandoc DataFrame containing all the Olshevsky labels from within the
     given time range.
@@ -147,10 +149,11 @@ def _get_olshevsky_label_list(trange=None, var_list=None):
 
     for i, var in enumerate(var_list):
         print(f'Processing varible: {var}')
-        if var not in _VAR_TO_FILE_INFO:
+        if var not in var_to_file_info:
             raise ValueError(f'Invalid var requested: {var}')
 
-        files_add, epochs_add = _get_var_info(trange, var, data['epoch'])
+        files_add, epochs_add = _get_var_info(trange, var, var_to_file_info[var],
+                                              data['epoch'])
 
         data[f'epoch {i}'] = epochs_add
         data[f'file {i}'] = files_add
@@ -164,7 +167,7 @@ def _get_olshevsky_label_list(trange=None, var_list=None):
     print(f'{droped_rows} samples droped due to invalid data')
     return data.reset_index(drop=True).drop(columns=['date'])
 
-def _get_olshevsky_labeled_dataset(trange, var_list=None, resample=None):
+def _get_olshevsky_labeled_dataset(trange, var_list=None, var_to_file_info = None, resample=None):
     """
     Get a list of data in a given timerange.
     """
@@ -174,16 +177,16 @@ def _get_olshevsky_labeled_dataset(trange, var_list=None, resample=None):
             raise ValueError('Resampling for Olshevsky labels only ' +
                              'support 4.5s, same frequency as labels')
 
-        df_full = _get_olshevsky_label_list(trange, var_list)
+        df_full = _get_olshevsky_label_list(trange, var_list, var_to_file_info)
         df_full = df_full[['Time','label']]
         df_full = df_full.set_index('Time')
         for i, var in enumerate(var_list):
             print(f'Processing varible: {var}')
-            if var not in _VAR_TO_FILE_INFO:
+            if var not in var_to_file_info:
                 raise ValueError(f'Invalid var requested: {var}')
 
             df_full = df_full.join(
-                _get_var(trange, var), how='outer')
+                _get_var(trange, var, var_to_file_info[var]), how='outer')
 
         df_full = df_full.resample(resample).mean()
 
@@ -194,7 +197,10 @@ def _get_olshevsky_labeled_dataset(trange, var_list=None, resample=None):
 
         df_full['label str'] = df_full['label'].replace(_OLSHEVSKY_LABELS)
     else:
-        df_full = _get_olshevsky_label_list(trange, var_list)
+        if len(var_list) > 1 or 'mms1_dis_dist_fast' not in var_list:
+            raise ValueError('Unresampled dataset using Olshevsky labels only support ' +
+                             'the var mms1_dis_dist_fast.')
+        df_full = _get_olshevsky_label_list(trange, var_list, var_to_file_info)
 
     droped_rows = len(df_full)
     df_full = df_full.dropna()
@@ -202,7 +208,7 @@ def _get_olshevsky_labeled_dataset(trange, var_list=None, resample=None):
     print(f'{droped_rows} samples droped due to invalid data')
     return df_full
 
-def _get_var(trange, var):
+def _get_var(trange, var, var_to_file_info):
 
     # The MMS Data API takes the end date as exclusive
     trange = [trange[0].strftime("%Y-%m-%d"),
@@ -210,7 +216,7 @@ def _get_var(trange, var):
 
     # Check which datafiles are relevant
     files = mms.get_file_list(trange[0], trange[1],
-                              **_VAR_TO_FILE_INFO[var]['info'])
+                              **var_to_file_info['info'])
 
     files = [f['file_name'] for f in files]
     filespaths = mms.filename_to_filepath(files)
@@ -227,13 +233,13 @@ def _get_var(trange, var):
         filepath = mms.filename_to_filepath(filename)
         cdf_file = read_cdf_file(_MMS_DATA_DIR + filepath)
         var_data = cdf_file.varget(var)
-        if len(_VAR_TO_FILE_INFO[var]['mapping']) > 1:
+        if len(var_to_file_info['mapping']) > 1:
             tmp = {k: var_data[:, i]
-                   for k, i in _VAR_TO_FILE_INFO[var]['mapping']}
+                   for k, i in var_to_file_info['mapping']}
 
         else:
             tmp = {k: var_data[:]
-                   for k, _ in _VAR_TO_FILE_INFO[var]['mapping']}
+                   for k, _ in var_to_file_info['mapping']}
 
         df = pd.concat([df, pd.DataFrame(tmp, index=pd.to_datetime(
                        cdfepoch.unixtime(cdf_file.varget('epoch')),
@@ -242,7 +248,7 @@ def _get_var(trange, var):
     return df.sort_index()
 
 
-def _get_unlabeled_list(trange=None, var_list=None):
+def _get_unlabeled_list(trange=None, var_list=None, var_to_file_info=None):
     """
     Get a pandoc DataFrame containing unlabeled epochs in a given
     time range.
@@ -251,7 +257,7 @@ def _get_unlabeled_list(trange=None, var_list=None):
     droped_rows = 0
 
     # Grab relevant epochs from the first varible
-    _, epochs = _get_var_info(trange, var_list[0])
+    _, epochs = _get_var_info(trange, var_list[0], var_to_file_info[var_list[0]])
 
     data = pd.DataFrame({'epoch': epochs})
     data['label'] = -1  # Everything is unlabeled
@@ -261,10 +267,11 @@ def _get_unlabeled_list(trange=None, var_list=None):
 
     for i, var in enumerate(var_list):
         print(f'Processing varible: {var}')
-        if var not in _VAR_TO_FILE_INFO:
+        if var not in var_to_file_info:
             raise ValueError(f'Invalid var requested: {var}')
 
-        files_add, epochs_add = _get_var_info(trange, var, data['epoch'])
+        files_add, epochs_add = _get_var_info(trange, var, var_to_file_info[var],
+                                              data['epoch'])
 
         data[f'epoch {i}'] = epochs_add
         data[f'file {i}'] = files_add
@@ -281,7 +288,7 @@ def _get_unlabeled_list(trange=None, var_list=None):
     return data.reset_index(drop=True)
 
 
-def _get_unlabeled_dataset(trange, var_list=None, resample=None):
+def _get_unlabeled_dataset(trange, var_list, var_to_file_info, resample=None):
     """
     Get a list of data in a given timerange.
     """
@@ -290,11 +297,11 @@ def _get_unlabeled_dataset(trange, var_list=None, resample=None):
         df_full = pd.DataFrame()
         for i, var in enumerate(var_list):
             print(f'Processing varible: {var}')
-            if var not in _VAR_TO_FILE_INFO:
+            if var not in var_to_file_info:
                 raise ValueError(f'Invalid var requested: {var}')
 
             df_full = df_full.join(
-                _get_var(trange, var), how='outer')
+                _get_var(trange, var, var_to_file_info[var]), how='outer')
 
         df_full = df_full.resample(resample).mean()
 
@@ -304,12 +311,11 @@ def _get_unlabeled_dataset(trange, var_list=None, resample=None):
         df_full = df_full.loc[(trange[0] <= df_full.index) &
                               (df_full.index < trange[1])]
     else:
-        df_full = _get_unlabeled_list(trange, var_list)
+        df_full = _get_unlabeled_list(trange, var_list, var_to_file_info)
 
     return df_full.dropna()
 
-
-_VAR_TO_FILE_INFO = {
+_DEFAULT_VAR_TO_FILE_INFO = {
     'mms1_dis_dist_fast': {
         'info': {
             'data_rate': 'fast',
@@ -371,7 +377,7 @@ _LABEL_SOURCES = {
 
 
 def get_dataset(label_source, trange, resample=None, clean=True, samples=0,
-                var_list=['mms1_dis_dist_fast']):
+                var_list=['mms1_dis_dist_fast'], var_to_file_info=_DEFAULT_VAR_TO_FILE_INFO):
     """
     Get a dataset based on a given config.
 
@@ -399,7 +405,9 @@ def get_dataset(label_source, trange, resample=None, clean=True, samples=0,
             raise ValueError(f'Incorrect datetime format: {t}')
 
     if label_source in _LABEL_SOURCES:
+        var_to_file_info = {var: var_to_file_info[var] for var in var_list}
         dataset = _LABEL_SOURCES[label_source](trange, resample=resample,
+                                            var_to_file_info=var_to_file_info,
                                             var_list=var_list)
     else:
         raise ValueError(f'Incorrect label_source ({label_source}), ' +
@@ -423,7 +431,7 @@ def get_dataset(label_source, trange, resample=None, clean=True, samples=0,
 
 
 def create_dataset(dataset_path, trange,
-                   force=False, **kwargs):
+                   force=False, var_info_file = None, **kwargs):
     """
     Create a dataset file based on given config.
 
@@ -445,6 +453,9 @@ def create_dataset(dataset_path, trange,
         else:
             print("Dataset exists, aborting")
             return
+    if var_info_file is not None:
+        var_to_file_info = load_var_to_file_info(var_info_file)
+        kwargs['var_to_file_info'] = var_to_file_info
 
     labels = get_dataset(trange=trange, **kwargs)
 

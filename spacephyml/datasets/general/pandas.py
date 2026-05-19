@@ -34,7 +34,7 @@ class PandasDataset(Dataset):
     """
 
     def __init__(self, dataset_path, transform=None, data_columns=None,
-                 label_column=None, return_index=True):
+                 label_column=None, return_index=True, size=None):
 
         self.dataset = pandas_read_file(dataset_path)
         self.label_column = label_column
@@ -42,12 +42,14 @@ class PandasDataset(Dataset):
 
         self.data_columns = data_columns
         if self.data_columns is None:
-            self.data_columns = [c
-                                 for c in self.dataset.columns
-                                 if c not in [self.label_column,
+            self.data_columns =  [c
+                for c in self.dataset.columns
+                    if c not in [self.label_column,
                                               'Unnamed: 0', 'label']]
 
         self.length = len(self.dataset.index)
+        if size is not None:
+            self.length = size
 
         self.transform = transform
 
@@ -69,7 +71,7 @@ class PandasDataset(Dataset):
             sample.append(label)
 
         if self.return_index:
-            index = self.dataset.index[idx]
+            index = self.dataset.index[idx].value
             sample.append(index)
 
         return sample
