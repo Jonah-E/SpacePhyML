@@ -74,3 +74,13 @@ If you have an source for data labels you want to add the dataset creator, pleas
 4. **Push the change to your fork**
 5. [**Create a pull request from your fork**](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork)
 
+
+### Development requirements
+
+#### Documentation
+To build the documentation you need to have mkdocs installed and a number of additional packages. You can install the requirements using pip.
+
+```
+pip install mkdocs
+pip install -r docs/requirements.txt
+```
