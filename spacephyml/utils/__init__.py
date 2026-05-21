@@ -3,7 +3,7 @@ Common utils used by multiple scripts
 """
 from os import path
 import numpy as np
-import pandas as pd
+import xarray as xr
 import cdflib
 
 
@@ -33,20 +33,38 @@ def read_cdf_file(cdf_filepath, variables=None):
     return data
 
 
-def pandas_read_file(filepath):
+def xarray_read_file(filepath):
     """
-    Wrapper to handle reading data from multiple different file formats.
+    Wrapper to handle reading data from multiple different file formats into
+    an xarray Dataset.
+
+    Preferred format is NetCDF4 (.nc), which preserves the full xarray
+    structure including named dimensions, coordinate metadata, and
+    multi-dimensional variables with no information loss.
+
+    Legacy .csv and .feather files written by older versions of SpacePhyML
+    are still readable; they are loaded via pandas and converted, so some
+    metadata (dimension names, coordinate dtypes) may differ from a native
+    .nc round-trip.
 
     Args:
         filepath (string): The file path including file extension.
     Returns:
-        A pandas DataFrame read from the given file path.
+        An xarray Dataset read from the given file path.
     """
 
     _, fileformat = path.splitext(filepath)
+    if fileformat == '.nc':
+        return xr.open_dataset(filepath)
     if fileformat == '.csv':
-        return pd.read_csv(filepath)
+        import pandas as pd
+        return xr.Dataset.from_dataframe(pd.read_csv(filepath))
     if fileformat == '.feather':
-        return pd.read_feather(filepath)
+        import pandas as pd
+        return xr.Dataset.from_dataframe(pd.read_feather(filepath))
 
     raise ValueError(f'Unknown filetype: {fileformat}')
+
+
+# Keep backward-compatible alias
+pandas_read_file = xarray_read_file

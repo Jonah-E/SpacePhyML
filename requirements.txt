@@ -1,10 +1,13 @@
 torch
+xarray
+netCDF4
 pandas
 requests
 cdflib
 tqdm
 pyarrow
 scikit-learn
+ipywidgets
 
 # For development and testing
 flake8

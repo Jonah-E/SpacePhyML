@@ -5,7 +5,7 @@ Module containing different datasets.
 from torch.utils.data import Dataset
 
 import numpy as np
-from ...utils import pandas_read_file
+from ...utils import xarray_read_file
 
 
 class PandasDataset(Dataset):
@@ -36,18 +36,18 @@ class PandasDataset(Dataset):
     def __init__(self, dataset_path, transform=None, data_columns=None,
                  label_column=None, return_index=True, size=None):
 
-        self.dataset = pandas_read_file(dataset_path)
+        self.dataset = xarray_read_file(dataset_path)
         self.label_column = label_column
         self.return_index = return_index
 
         self.data_columns = data_columns
         if self.data_columns is None:
-            self.data_columns =  [c
-                for c in self.dataset.columns
-                    if c not in [self.label_column,
-                                              'Unnamed: 0', 'label']]
+            self.data_columns = [
+                c for c in self.dataset.data_vars
+                if c not in [self.label_column, 'Unnamed: 0', 'label']
+            ]
 
-        self.length = len(self.dataset.index)
+        self.length = self.dataset.dims['index']
         if size is not None:
             self.length = size
 
@@ -60,18 +60,24 @@ class PandasDataset(Dataset):
         if not isinstance(idx, int):
             raise ValueError('Expected idx to be an integer value')
 
-        data = np.array([f for f in self.dataset.iloc[idx][self.data_columns]])
+        data = np.array([
+            float(self.dataset[col].values[idx]) for col in self.data_columns
+        ])
 
         if self.transform:
             data = self.transform(data)
 
         sample = [data]
         if self.label_column:
-            label = np.array([f for f in self.dataset.iloc[idx][self.label_column]])
+            label = np.array([
+                float(self.dataset[self.label_column].values[idx])
+            ])
             sample.append(label)
 
         if self.return_index:
-            index = self.dataset.index[idx].value
-            sample.append(index)
+            index = self.dataset['index'].values[idx]
+            # If index is a datetime-like, expose its integer value
+            index_val = getattr(index, 'value', int(index))
+            sample.append(index_val)
 
         return sample

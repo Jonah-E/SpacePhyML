@@ -2,7 +2,7 @@
 Unit tests for spacephyml/algorithms/detector.py – OutlierDetector
 """
 import numpy as np
-import pandas as pd
+import xarray as xr
 import pytest
 import sys
 import types
@@ -52,8 +52,8 @@ class TestOutlierDetectorInit:
     def test_history_is_empty_dataframe(self):
         det = OutlierDetector()
         h = det.get_history()
-        assert isinstance(h, pd.DataFrame)
-        assert len(h) == 0
+        assert isinstance(h, xr.Dataset)
+        assert h.sizes["sample"] == 0
 
     def test_custom_params_stored(self):
         det = OutlierDetector(error_threshold=5.0, n_components=2, calib_batch_size=8)
@@ -146,7 +146,7 @@ class TestResets:
         det = OutlierDetector(calib_batch_size=5, n_components=1)
         det(_make_samples(10))
         det.reset_history()
-        assert len(det.get_history()) == 0
+        assert det.get_history().sizes["sample"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -159,13 +159,13 @@ class TestGetHistory:
         det(_make_samples(10))
         h = det.get_history()
         for col in ('Error', 'Threshold', 'Outlier', 'Calibration', 'Flag'):
-            assert col in h.columns
+            assert col in h.data_vars
 
     def test_outlier_column_is_bool(self):
         det = OutlierDetector(calib_batch_size=5, n_components=1)
         det(_make_samples(10))
         h = det.get_history()
-        assert h['Outlier'].dtype == bool
+        assert h["Outlier"].dtype == bool
 
 
 # ---------------------------------------------------------------------------
@@ -177,10 +177,10 @@ class TestCalDetections:
         times = np.arange(10, dtype=float)
         outliers = np.array([0, 0, 1, 0, 0, 1, 1, 0, 0, 0], dtype=bool)
         flags = outliers.astype(int)
-        return pd.DataFrame({
-            'Time': times,
-            'Outlier': outliers,
-            'Flag': flags,
+        return xr.Dataset({
+            'Time': ('sample', times),
+            'Outlier': ('sample', outliers),
+            'Flag': ('sample', flags),
         })
 
     def test_returns_four_tuples(self):

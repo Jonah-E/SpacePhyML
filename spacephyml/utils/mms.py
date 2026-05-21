@@ -3,6 +3,7 @@ Dataset utils specific to MMS.
 """
 from os import path, makedirs
 import requests
+from tqdm.auto import tqdm
 
 from .file_download import download_file_with_status
 
@@ -97,15 +98,18 @@ def download_cdf_files(rootdir, cdf_filepaths, session=None):
     t_cnt = len(cdf_filepaths)
     rootdir = rootdir[:-1] if rootdir[-1] == '/' else rootdir
 
-    for cnt, filepath in enumerate(cdf_filepaths, 1):
-        dirpath, filename = path.split(filepath)
-        makedirs(f'{rootdir}/{dirpath}', exist_ok=True)
-        url_file = f'{_MMS_DATA_BASE_URL}download/science?file={filename}'
-        filepath = path.abspath(f'{rootdir}/{dirpath}/{filename}')
-        if path.isfile(filepath):
-            print(f'({cnt}/{t_cnt}): File {filename} exists, skipping.')
-        else:
-            print(f'({cnt}/{t_cnt}): Downloading file {filename}')
-            download_file_with_status(url_file, filepath, session)
+    with tqdm(total=t_cnt, desc='Downloading files', position = 0) as pbar:
+        for filepath in cdf_filepaths:
+            dirpath, filename = path.split(filepath)
+            makedirs(f'{rootdir}/{dirpath}', exist_ok=True)
+            url_file = f'{_MMS_DATA_BASE_URL}download/science?file={filename}'
+            filepath = path.abspath(f'{rootdir}/{dirpath}/{filename}')
+            pbar.set_postfix_str(f'Downloading {filename}')
+
+            if not path.isfile(filepath):
+                download_file_with_status(url_file, filepath, session, position=1)
+
+            pbar.update(1)
+
     if close_session:
         session.close()

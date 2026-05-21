@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 import numpy as np
 
-from ...utils import mms, read_cdf_file, pandas_read_file
+from ...utils import mms, read_cdf_file, xarray_read_file
 from ...utils.file_download import missing_files
 from ...__init__ import _MMS_DATA_DIR
 
@@ -62,7 +62,7 @@ class ExternalMMSData(Dataset):
     def __init__(self, dataset_path, rootdir=None, transform=None, cache=True,
                  return_epoch=True):
 
-        self.dataset = pandas_read_file(dataset_path)
+        self.dataset = xarray_read_file(dataset_path)
         self.cache = cache
         self.return_epoch = return_epoch
 
@@ -71,13 +71,12 @@ class ExternalMMSData(Dataset):
         else:
             self.rootdir = _MMS_DATA_DIR
 
-        # There are two extra columns and for each varible
-        # there are three columns
-        self.num_vars = int((len(self.dataset.columns)-2)/3)
+        # There are two extra columns and for each variable there are three columns
+        self.num_vars = int((len(self.dataset.data_vars) - 2) / 3)
 
         for i in range(self.num_vars):
-            files = mms.filename_to_filepath(
-                self.dataset[f'file {i}'].unique())
+            unique_files = np.unique(self.dataset[f'file {i}'].values)
+            files = mms.filename_to_filepath(unique_files)
 
             if not isinstance(files, list):
                 files = [files]
@@ -89,10 +88,11 @@ class ExternalMMSData(Dataset):
                 mms.download_cdf_files(self.rootdir, missing)
 
             if self.cache:
-                # Add an index for each entry
-                self.dataset[f'index {i}'] = -1
+                # Add an index variable for each entry (initialised to -1)
+                self.dataset[f'index {i}'] = ('index',
+                    np.full(self.dataset.dims['index'], -1, dtype=np.int64))
 
-        self.length = len(self.dataset.index)
+        self.length = self.dataset.dims['index']
 
         self.transform = transform
 
@@ -104,7 +104,7 @@ class ExternalMMSData(Dataset):
     def __getitem__(self, idx):
         """
         Returns:
-            (typle):
+            (tuple):
                 Will return a list with with all the data varibles in a list
                 followed by the label. If 'return_epoch = True' is set the
                 label epoch of the data will also be returned.
@@ -112,7 +112,9 @@ class ExternalMMSData(Dataset):
         if not isinstance(idx, int):
             raise ValueError('Expected idx to be an integer value')
 
-        data_loc = self.dataset.iloc[idx]
+        # Build a row-view as a simple dict for this index
+        data_loc = {var: self.dataset[var].values[idx]
+                    for var in self.dataset.data_vars}
 
         sample = []
         for i in range(self.num_vars):
@@ -127,13 +129,14 @@ class ExternalMMSData(Dataset):
                                       [('var', data_loc[f'var_name {i}']),
                                        ('epoch', 'epoch')])
 
-                # This index caching does not seem to work
                 index = data_loc[f'index {i}']
                 if index == -1:
-                    self.dataset.at[idx, f'index {i}'] =  \
-                        np.where(self.data[data_loc[f'file {i}']]['epoch'] ==
-                                 data_loc[f'epoch {i}'])[0]
-                    index = self.dataset.loc[idx, f'index {i}']
+                    new_idx = np.where(
+                        self.data[data_loc[f'file {i}']]['epoch'] ==
+                        data_loc[f'epoch {i}']
+                    )[0]
+                    self.dataset[f'index {i}'].values[idx] = new_idx
+                    index = self.dataset[f'index {i}'].values[idx]
 
                 sample.append(self.data[data_loc[f'file {i}']]['var'][index])
             else:
@@ -143,14 +146,14 @@ class ExternalMMSData(Dataset):
 
                 index = np.where(
                         data['epoch'] == data_loc[f'epoch {i}'])
-                sample.append(self.data[data_loc[f'file {i}']]['var'][index])
+                sample.append(data['var'][index])
 
         if self.transform:
             sample[0] = self.transform(sample[0])
 
-        sample.append(data_loc.label)
+        sample.append(data_loc['label'])
 
         if self.return_epoch:
-            sample.append(data_loc.epoch)
+            sample.append(data_loc['epoch'])
 
         return sample

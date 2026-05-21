@@ -34,7 +34,7 @@ def missing_files(files, rootdir=''):
     return missing
 
 
-def download_file_with_status(url_file, filepath, session=None):
+def download_file_with_status(url_file, filepath, session=None, position=0):
     """
     Download one file with a progress bar.
 
@@ -61,7 +61,9 @@ def download_file_with_status(url_file, filepath, session=None):
     desc = "(Unknown total file size)" if file_size == 0 else ""
     r.raw.read = functools.partial(r.raw.read, decode_content=True)
     with NamedTemporaryFile() as ftmp:
-        with tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc) as r_raw:
+        with tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc,
+                           leave = False if position > 0 else True,
+                           position=position) as r_raw:
             with open(ftmp.name, 'wb') as f:
                 copyfileobj(r_raw, f)
 

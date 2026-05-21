@@ -1,7 +1,8 @@
 from torch.utils.data import Dataset
 import pytplot
-import pandas as pd
+import xarray as xr
 import numpy as np
+import pandas as pd
 
 
 class SpedasWrapper(Dataset):
@@ -26,18 +27,20 @@ class SpedasWrapper(Dataset):
 
     """
     def __init__(self, tplot_vars, dropna=True, resample=None, transform=None):
-        self.dataset = None
+        # Build up an xarray Dataset by merging variables one at a time.
+        datasets = []
         self.features = []
         feature_cnt = 0
+
         for var in tplot_vars:
             pre = None
             if len(var) > 1:
                 var, pre = var
             data = pytplot.get_data(var)
             if len(data) == 2:
-                time, data = data
+                time, values = data
             elif len(data) == 3:
-                time, data, a = data
+                time, values, _ = data
 
             names = pytplot.get_data(var, metadata=True)['CDF']['LABELS']
             if names is None:
@@ -45,42 +48,51 @@ class SpedasWrapper(Dataset):
             else:
                 names = [f'_{n}' for n in names]
 
-            if data.ndim > 2:
-                raise ValueError(f'Cannot handle {data.ndim} dimentions!')
-            elif data.ndim == 2:
-                if data.shape[1] != len(names):
-                    names = [f'_{i:02}' for i in range(data.shape[1])]
+            if values.ndim > 2:
+                raise ValueError(f'Cannot handle {values.ndim} dimentions!')
+            elif values.ndim == 2:
+                if values.shape[1] != len(names):
+                    names = [f'_{i:02}' for i in range(values.shape[1])]
 
             if pre is None:
                 names = [f'{var}{n}' for n in names]
             else:
                 names = [f'{pre}{n}' for n in names]
 
-            self.features.append((feature_cnt, feature_cnt+len(names)))
+            self.features.append((feature_cnt, feature_cnt + len(names)))
             feature_cnt += len(names)
-            if data.ndim > 1:
-                tmp = pd.DataFrame({k: data[:, i]
-                                   for i, k in enumerate(names)},
-                                   index=pd.to_datetime(time, unit='s'))
-            else:
-                tmp = pd.DataFrame({k: data[:] for k in names},
-                                   index=pd.to_datetime(time, unit='s'))
-            if self.dataset is None:
-                self.dataset = tmp
-            else:
-                self.dataset = self.dataset.join(tmp, how='outer')
 
-        self.resampled = False
+            time_index = pd.to_datetime(time, unit='s')
+            if values.ndim > 1:
+                data_vars = {k: ('time', values[:, i])
+                             for i, k in enumerate(names)}
+            else:
+                data_vars = {k: ('time', values[:]) for k in names}
+
+            tmp = xr.Dataset(data_vars, coords={'time': time_index})
+            datasets.append(tmp)
+
+        # Merge all variables; outer join keeps all timestamps
+        if datasets:
+            self.dataset = xr.merge(datasets, join='outer')
+        else:
+            self.dataset = xr.Dataset()
+
         if resample:
-            self.resampled = True
-            self.dataset = self.dataset.resample(resample).mean()
+            # xarray uses timedelta-compatible offset strings
+            self.dataset = (
+                self.dataset
+                .resample(time=resample)
+                .mean()
+            )
 
         if dropna:
-            self.dataset = self.dataset.dropna(axis='columns', how='all')
-            self.dataset = self.dataset.dropna(axis='index', how='any')
+            # Drop variables (data_vars) that are all-NaN, then drop time
+            # steps with any NaN across remaining variables.
+            self.dataset = self.dataset.dropna(dim='time', how='any')
 
         self.transform = transform
-        self.length = len(self.dataset.index)
+        self.length = self.dataset.dims['time']
 
     def __len__(self):
         return self.length
@@ -88,20 +100,22 @@ class SpedasWrapper(Dataset):
     def __getitem__(self, idx):
         if not isinstance(idx, int):
             raise ValueError('Expected idx to be an integer value')
-        data = np.array([d for d in self.dataset.iloc[idx]])
+        data = np.array([
+            float(self.dataset[v].values[idx])
+            for v in self.dataset.data_vars
+        ])
 
         if self.transform:
             data = self.transform(data)
 
         return (data,)
 
-    def get_dataframe(self):
+    def get_dataset(self):
         """
-        Get the full pandas DataFrame
+        Get the full xarray Dataset.
 
-        Returns
-        -------
-        dataset : pandas DataFrame
-            The full loaded data.
+        Returns:
+            dataset : xr.Dataset
+                The full loaded data.
         """
         return self.dataset
