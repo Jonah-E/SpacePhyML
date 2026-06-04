@@ -28,6 +28,9 @@ class BaseSpectrumDataset(Dataset):
         dataset is unlabelled).
     ``is_unlabelled`` : bool
         True when the dataset was built in unlabelled mode.
+    ``timestamps`` : ndarray of numpy.datetime64, shape (n_samples,)
+        Timestamp of the **first** time step of each window, in the original
+        ``datetime64[ns]`` precision of the source file.
     ``bin_centers`` : ndarray or None
         Energy bin centre values for each sample, shape ``(n_samples, N, n_bins)``.
         ``None`` if no axis variable (tagged ``spacephyml_role='axis'``) was
@@ -144,9 +147,10 @@ class BaseSpectrumDataset(Dataset):
         # ------------------------------------------------------------------ #
         # Build contiguous numpy arrays                                        #
         # ------------------------------------------------------------------ #
-        spec_matrix = []
-        spec_label  = []
-        bin_centers = [] if axis_var is not None else None
+        spec_matrix     = []
+        spec_label      = []
+        timestamps = []
+        bin_centers     = [] if axis_var is not None else None
 
         for label, chunks in selected.items():
             for chunk in chunks:
@@ -155,16 +159,18 @@ class BaseSpectrumDataset(Dataset):
                     sample = transform(sample)
                 spec_matrix.append(sample.flatten() if flatten else sample)
                 spec_label.append(label)
+                timestamps.append(chunk['time'].values[0])
 
                 if axis_var is not None:
                     bin_centers.append(
                         chunk[axis_var].values.astype(np.float32)
                     )
 
-        self.spec_matrix = np.array(spec_matrix, dtype=np.float32)
-        self.spec_label  = np.array(spec_label,  dtype=np.int64)
-        self.bin_centers = (np.array(bin_centers, dtype=np.float32)
-                            if bin_centers is not None else None)
+        self.spec_matrix     = np.array(spec_matrix,     dtype=np.float32)
+        self.spec_label      = np.array(spec_label,      dtype=np.int64)
+        self.timestamps = np.array(timestamps, dtype='datetime64[ns]')
+        self.bin_centers     = (np.array(bin_centers, dtype=np.float32)
+                                if bin_centers is not None else None)
 
     def _extract(self, chunk: xr.Dataset, data_columns: list) -> np.ndarray:
         """
