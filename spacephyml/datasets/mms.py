@@ -122,6 +122,7 @@ class SpectrumDataset(BaseSpectrumDataset):
         seed: int = 42,
         verbose: bool = True,
         fill_unknown: bool = False,
+        fill_unknown_max_ratio: float = 0.25,
         unlabelled: bool = False,
     ):
         """
@@ -149,6 +150,12 @@ class SpectrumDataset(BaseSpectrumDataset):
                 surrounding label when both neighbouring known labels (within the
                 same time-continuity group) are identical.  Runs at the edge of a
                 time group or between two different labels remain ``-1``.
+            fill_unknown_max_ratio : float
+                Only used when ``fill_unknown=True``.  A ``-1`` run is filled
+                only if its length is strictly less than
+                ``fill_unknown_max_ratio * N``.  Defaults to ``0.25``, meaning
+                runs longer than a quarter of the window size are left as
+                ``-1`` even when both neighbours agree.
             unlabelled : bool
                 If True, ignore any label information and treat the dataset as
                 unlabelled: all windows across all time-continuity groups are
@@ -157,8 +164,9 @@ class SpectrumDataset(BaseSpectrumDataset):
                 automatically when the file contains no ``label`` variable, or
                 when every label value is ``-1``.
         """
-        self._fill_unknown = fill_unknown
-        self._unlabelled   = unlabelled
+        self._fill_unknown           = fill_unknown
+        self._fill_unknown_max_ratio  = fill_unknown_max_ratio
+        self._unlabelled              = unlabelled
         ds = self._load(dataset_path, trange)
 
         # Auto-detect unlabelled: no label variable, or every value is -1.
@@ -282,7 +290,7 @@ class SpectrumDataset(BaseSpectrumDataset):
         return chunks
 
     def _fill_unknown_labels(
-        self, labels: np.ndarray, time_groups: np.ndarray
+        self, labels: np.ndarray, time_groups: np.ndarray, N: int
     ) -> np.ndarray:
         """
         Return a copy of ``labels`` where runs of ``-1`` have been filled in
@@ -294,6 +302,8 @@ class SpectrumDataset(BaseSpectrumDataset):
             exists and equals the nearest known label **after** the run.
           - neither boundary is missing (i.e. the run does not touch the edge
             of its time group).
+          - the run length is strictly less than
+            ``self._fill_unknown_max_ratio * N``.
 
         Any run that fails these conditions is left as ``-1``.
         """
@@ -329,10 +339,12 @@ class SpectrumDataset(BaseSpectrumDataset):
                     label_after = labels[j]
                     break
 
-            # ---- fill only if both neighbours exist and agree ----
+            # ---- fill only if both neighbours exist, agree, and run is short ----
+            run_length = run_end - run_start
             if (label_before is not None and
                     label_after is not None and
-                    label_before == label_after):
+                    label_before == label_after and
+                    run_length < self._fill_unknown_max_ratio * N):
                 labels[run_start:run_end] = label_before
 
         return labels
@@ -358,7 +370,7 @@ class SpectrumDataset(BaseSpectrumDataset):
         labels = ds['label'].values.astype(float)
 
         if self._fill_unknown:
-            labels = self._fill_unknown_labels(labels, time_groups)
+            labels = self._fill_unknown_labels(labels, time_groups, N)
 
         label_diff = np.concatenate([[0], np.diff(labels)])
         label_groups = np.cumsum(label_diff != 0)
