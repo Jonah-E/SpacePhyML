@@ -5,39 +5,37 @@ from torch.utils.data import Dataset
 
 
 class BaseSpectrumDataset(Dataset):
-    """
-    Generic PyTorch Dataset built from a list of pre-split xarray Dataset chunks.
+    """Generic PyTorch Dataset built from pre-split xarray Dataset chunks.
 
     Supports two data layouts:
 
-    **2D variable** (new format from ``create_dataset``):
+    **2-D variable** (new format from ``create_dataset``):
         Pass a single variable name in ``data_columns`` that refers to a
-        ``(time, energy_bin)`` DataArray.  Each chunk yields an ``(N, n_bins)``
-        array directly — no stacking needed.
+        ``(time, energy_bin)`` DataArray. Each chunk yields an
+        ``(N, n_bins)`` array directly — no stacking needed.
 
-    **Multiple 1D variables** (legacy flat format):
-        Pass a list of scalar variable names.  Each chunk yields an ``(N, C)``
-        array by stacking the C named columns along a new axis.
+    **Multiple 1-D variables** (legacy flat format):
+        Pass a list of scalar variable names. Each chunk yields an
+        ``(N, C)`` array by stacking the ``C`` named columns along a new
+        last axis.
 
-    After construction the following attributes are available:
-
-    ``spec_matrix`` : ndarray, shape (n_samples, N*n_bins) or (n_samples, N, n_bins)
-        The feature matrix (flattened or 2-D depending on ``flatten``).
-    ``spec_label`` : ndarray, shape (n_samples,)
-        Integer class label for each sample (``-1`` for all samples when the
-        dataset is unlabelled).
-    ``is_unlabelled`` : bool
-        True when the dataset was built in unlabelled mode.
-    ``timestamps`` : ndarray of numpy.datetime64, shape (n_samples,)
-        Timestamp of the **first** time step of each window, in the original
-        ``datetime64[ns]`` precision of the source file.
-    ``bin_centers`` : ndarray or None
-        Energy bin centre values for each sample, shape ``(n_samples, N, n_bins)``.
-        ``None`` if no axis variable (tagged ``spacephyml_role='axis'``) was
-        found in the chunks.  When the bin centres are identical across all
-        samples (the common case within a single survey mode) you can use
-        ``dataset.bin_centers[0, 0]`` to get the representative 1-D axis.
-
+    Attributes:
+        spec_matrix (np.ndarray): Feature matrix of shape
+            ``(n_samples, N * n_bins)`` when ``flatten=True``, or
+            ``(n_samples, N, n_bins)`` otherwise.
+        spec_label (np.ndarray): Integer class label for each sample, shape
+            ``(n_samples,)``. All values are ``-1`` when the dataset is in
+            unlabelled mode.
+        is_unlabelled (bool): ``True`` when the dataset was built in
+            unlabelled mode (the only key in ``chunks_by_label`` is ``-1``).
+        timestamps (np.ndarray): ``datetime64[ns]`` timestamp of the
+            **first** time step of each window, shape ``(n_samples,)``.
+        bin_centers (np.ndarray | None): Energy bin centre values, shape
+            ``(n_samples, N, n_bins)``, or ``None`` if no axis variable
+            (tagged ``spacephyml_role='axis'``) was found in the chunks.
+            When bin centres are identical across samples (the common case
+            within a single survey mode), ``dataset.bin_centers[0, 0]``
+            gives a representative 1-D axis.
     """
 
     def __init__(
@@ -51,45 +49,40 @@ class BaseSpectrumDataset(Dataset):
         seed: int = 42,
         verbose: bool = True,
     ):
-        """
+        """Initialise the dataset from pre-built chunks.
+
         Args:
-            chunks_by_label : dict[int, list[xr.Dataset]] | list[xr.Dataset]
-                Either a mapping from integer label -> list of equal-length chunks
-                (labelled mode), or a flat list of chunks (unlabelled mode).
-                Pass a flat list to engage unlabelled mode explicitly; the subclass
-                can also trigger this path by passing ``chunks_by_label={-1: chunks}``.
-            data_columns : list[str]
-                Variable name(s) to extract as features from each chunk.
-            N : int
-                Expected number of time steps per chunk.
-            samples : int | None
-                Chunks per class after balancing (labelled), or total chunks drawn at
-                random (unlabelled).  None = use all.
-            flatten : bool
-                Return each sample as a 1-D vector when True, else (N, C) 2-D array.
-            transform : callable | None
-                Optional transform applied to each raw (N, C) numpy array.
-                Signature: ndarray -> ndarray.
-            seed : int
-                Random seed for balancing / random sampling.
-            verbose : bool
-                Print diagnostics when True.
+            chunks_by_label (dict[int, list[xr.Dataset]] | list[xr.Dataset]):
+                Either a mapping from integer label to a list of equal-length
+                xarray Dataset chunks (labelled mode), or a flat list of chunks
+                (unlabelled mode). A flat list is internally converted to
+                ``{-1: chunks}``.
+            data_columns (list[str]): Variable name(s) to extract as features
+                from each chunk.
+            N (int): Expected number of time steps per chunk.
+            samples (int | None): Number of chunks per class after balancing
+                (labelled), or total chunks drawn at random (unlabelled).
+                ``None`` uses all available chunks (still balanced to the
+                smallest class in labelled mode).
+            flatten (bool): If ``True``, return each sample as a 1-D vector;
+                otherwise return an ``(N, C)`` 2-D array.
+            transform (callable | None): Optional transform applied to each
+                raw ``(N, C)`` numpy array before storage.
+                Signature: ``ndarray -> ndarray``.
+            seed (int): Random seed for class balancing and random sampling.
+            verbose (bool): If ``True``, print class-balance diagnostics.
         """
         np.random.seed(seed)
 
-        # ------------------------------------------------------------------ #
-        # Normalise input: flat list → unlabelled dict                        #
-        # ------------------------------------------------------------------ #
+        # Normalise a flat list to the unlabelled dict form.
         if isinstance(chunks_by_label, list):
             chunks_by_label = {-1: chunks_by_label}
 
-        # Unlabelled mode: the only key is -1
+        # Unlabelled mode is indicated by -1 being the only key.
         self.is_unlabelled = list(chunks_by_label.keys()) == [-1]
 
         if self.is_unlabelled:
-            # ---------------------------------------------------------------- #
-            # Unlabelled path: random subsample from a single pool             #
-            # ---------------------------------------------------------------- #
+            # Random subsample from the single unlabelled pool.
             pool = chunks_by_label[-1]
             if not pool:
                 raise ValueError("chunks_by_label contains no usable chunks.")
@@ -98,16 +91,14 @@ class BaseSpectrumDataset(Dataset):
                 print(f"Unlabelled dataset: {len(pool)} windows available.")
 
             if samples is not None:
-                n = min(samples, len(pool))
+                n    = min(samples, len(pool))
                 idxs = np.random.choice(len(pool), size=n, replace=False)
                 pool = [pool[i] for i in idxs]
 
             selected = {-1: pool}
 
         else:
-            # ---------------------------------------------------------------- #
-            # Labelled path: balance classes                                    #
-            # ---------------------------------------------------------------- #
+            # Balance classes to the size of the smallest non-empty class.
             non_empty = [v for v in chunks_by_label.values() if len(v) > 0]
             if not non_empty:
                 raise ValueError("chunks_by_label contains no usable chunks.")
@@ -129,9 +120,7 @@ class BaseSpectrumDataset(Dataset):
                 else:
                     selected[label] = chunks
 
-        # ------------------------------------------------------------------ #
-        # Detect layout and axis variable from the first available chunk      #
-        # ------------------------------------------------------------------ #
+        # Detect data layout and optional axis variable from the first chunk.
         first_chunk = next(c for chunks in selected.values() for c in chunks)
         self._is_2d = (
             len(data_columns) == 1 and
@@ -141,16 +130,14 @@ class BaseSpectrumDataset(Dataset):
         axis_var = next(
             (v for v in first_chunk.data_vars
              if first_chunk[v].attrs.get('spacephyml_role') == 'axis'),
-            None
+            None,
         )
 
-        # ------------------------------------------------------------------ #
-        # Build contiguous numpy arrays                                        #
-        # ------------------------------------------------------------------ #
-        spec_matrix     = []
-        spec_label      = []
-        timestamps = []
-        bin_centers     = [] if axis_var is not None else None
+        # Build the contiguous feature and label arrays.
+        spec_matrix = []
+        spec_label  = []
+        timestamps  = []
+        bin_centers = [] if axis_var is not None else None
 
         for label, chunks in selected.items():
             for chunk in chunks:
@@ -166,18 +153,25 @@ class BaseSpectrumDataset(Dataset):
                         chunk[axis_var].values.astype(np.float32)
                     )
 
-        self.spec_matrix     = np.array(spec_matrix,     dtype=np.float32)
-        self.spec_label      = np.array(spec_label,      dtype=np.int64)
-        self.timestamps = np.array(timestamps, dtype='datetime64[ns]')
-        self.bin_centers     = (np.array(bin_centers, dtype=np.float32)
-                                if bin_centers is not None else None)
+        self.spec_matrix = np.array(spec_matrix, dtype=np.float32)
+        self.spec_label  = np.array(spec_label,  dtype=np.int64)
+        self.timestamps  = np.array(timestamps,  dtype='datetime64[ns]')
+        self.bin_centers = (np.array(bin_centers, dtype=np.float32)
+                            if bin_centers is not None else None)
 
     def _extract(self, chunk: xr.Dataset, data_columns: list) -> np.ndarray:
-        """
-        Extract a (N, C) float32 array from a chunk.
+        """Extract a ``(N, C)`` float32 array from a single chunk.
 
-        For a 2D variable (time, energy_bin): return its values directly.
-        For multiple 1D variables: stack them along a new last axis.
+        For a 2-D variable ``(time, energy_bin)``, the values are returned
+        directly. For multiple 1-D variables, they are stacked along a new
+        last axis.
+
+        Args:
+            chunk (xr.Dataset): A single windowed dataset chunk.
+            data_columns (list[str]): Feature variable names to extract.
+
+        Returns:
+            np.ndarray: Array of shape ``(N, C)`` and dtype ``float32``.
         """
         if self._is_2d:
             return chunk[data_columns[0]].values.astype(np.float32)
@@ -190,9 +184,20 @@ class BaseSpectrumDataset(Dataset):
     # ---------------------------------------------------------------------- #
 
     def __len__(self) -> int:
+        """Return the total number of samples in the dataset."""
         return len(self.spec_label)
 
     def __getitem__(self, idx: int):
+        """Return the sample and label at the given index.
+
+        Args:
+            idx (int): Sample index.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: A ``(x, y)`` pair where ``x``
+                is the feature tensor (``float32``) and ``y`` is the integer
+                class label (``int64``).
+        """
         x = torch.from_numpy(self.spec_matrix[idx])
         y = torch.tensor(self.spec_label[idx], dtype=torch.long)
         return x, y
