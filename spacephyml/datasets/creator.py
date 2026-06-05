@@ -724,6 +724,28 @@ _DEFAULT_VAR_TO_FILE_INFO = {
             'instrument': 'fpi'}},
 
     # ------------------------------------------------------------------ #
+    # Scalar moments – no mapping needed (single value per time step).    #
+    # FIELDNAM from the CDF will be used as the column name.              #
+    # ------------------------------------------------------------------ #
+    'mms1_des_numberdensity_fast': {
+        'info': {
+            'data_rate': 'fast',
+            'datatype': 'dis-moms',
+            'instrument': 'fpi'}},
+
+    'mms1_des_temppara_fast': {
+        'info': {
+            'data_rate': 'fast',
+            'datatype': 'dis-moms',
+            'instrument': 'fpi'}},
+
+    'mms1_des_tempperp_fast': {
+        'info': {
+            'data_rate': 'fast',
+            'datatype': 'dis-moms',
+            'instrument': 'fpi'}},
+
+    # ------------------------------------------------------------------ #
     # Magnetic field vector (4 components in L2: Bx, By, Bz, |B|).       #
     # Static mapping kept for the same reason as bulk velocity.           #
     # ------------------------------------------------------------------ #
@@ -731,7 +753,24 @@ _DEFAULT_VAR_TO_FILE_INFO = {
         'info': {
             'data_rate': 'srvy',
             'instrument': 'fgm'},
-        'mapping': [('Bx', 0), ('By', 1), ('Bz', 2)]},
+        'mapping': [('Bx GSE', 0), ('By GSE', 1), ('Bz GSE', 2),  ('B_tot', 3)]},
+
+    'mms1_fgm_b_gsm_srvy_l2': {
+        'info': {
+            'data_rate': 'srvy',
+            'instrument': 'fgm'},
+        'mapping': [('Bx GSM', 0), ('By GSM', 1), ('Bz GSM', 2),  ('B_tot', 3)]},
+
+    'mms1_fgm_b_dmpa_srvy_l2': {
+        'info': {
+            'data_rate': 'srvy',
+            'instrument': 'fgm'},
+        'mapping': [('Bx DMPA', 0), ('By DMPA', 1), ('Bz DMPA', 2),  ('B_tot ', 3)]},
+    'mms1_fgm_b_bcs_srvy_l2': {
+        'info': {
+            'data_rate': 'srvy',
+            'instrument': 'fgm'},
+        'mapping': [('Bx BCS', 0), ('By BCS', 1), ('Bz BCS', 2),  ('B_tot ', 3)]},
 }
 
 _LABEL_SOURCES = {
