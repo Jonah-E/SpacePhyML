@@ -466,7 +466,8 @@ def _get_olshevsky_labeled_dataset(trange, var_list=None, var_to_file_info=None,
             raise ValueError('Resampling for Olshevsky labels only ' +
                              'support 4.5s, same frequency as labels')
 
-        ds_labels = _get_olshevsky_label_list(trange, var_list, var_to_file_info)
+        ds_labels = _get_olshevsky_label_list(trange, var_list, var_to_file_info,
+                                              only_labels=True)
         # Keep only the time coordinate and the label variable, indexed by Time
         time_vals = ds_labels['Time'].values
         ds_full = xr.Dataset(
@@ -491,9 +492,9 @@ def _get_olshevsky_labeled_dataset(trange, var_list=None, var_to_file_info=None,
             (ds_full.time < np.datetime64(trange[1]))
         ))
 
-        ds_full['label'] = ds_full['label'].fillna(-1)
+        #ds_full['label'] = ds_full['label'].fillna(-1)
         # Map integer labels to human-readable strings
-        label_strs = [_OLSHEVSKY_LABELS.get(int(v), 'Undefined') if not np.isnan(v) else 'Undefined'
+        label_strs = [_OLSHEVSKY_LABELS.get(int(v), 'Undefined') if not np.isnan(v) else 'is NaN'
                       for v in ds_full['label'].values]
         ds_full['label str'] = ('time', label_strs)
         return ds_full
@@ -730,19 +731,19 @@ _DEFAULT_VAR_TO_FILE_INFO = {
     'mms1_des_numberdensity_fast': {
         'info': {
             'data_rate': 'fast',
-            'datatype': 'dis-moms',
+            'datatype': 'des-moms',
             'instrument': 'fpi'}},
 
     'mms1_des_temppara_fast': {
         'info': {
             'data_rate': 'fast',
-            'datatype': 'dis-moms',
+            'datatype': 'des-moms',
             'instrument': 'fpi'}},
 
     'mms1_des_tempperp_fast': {
         'info': {
             'data_rate': 'fast',
-            'datatype': 'dis-moms',
+            'datatype': 'des-moms',
             'instrument': 'fpi'}},
 
     # ------------------------------------------------------------------ #
@@ -918,6 +919,15 @@ def create_dataset(dataset_path, trange,
             'Use .nc to preserve the full xarray structure.',
             UserWarning, stacklevel=2,
         )
-        labels.to_dataframe().reset_index().to_feather(dataset_path)
+        labels.to_dataframe().to_feather(dataset_path)
+    elif fileformat == '.parquet':
+        import warnings
+        warnings.warn(
+            'Saving as .parquet is a lossy export: multi-dimensional '
+            'variables are flattened and coordinate metadata is lost.  '
+            'Use .nc to preserve the full xarray structure.',
+            UserWarning, stacklevel=2,
+        )
+        labels.to_dataframe().to_parquet(dataset_path)
     else:
         raise ValueError(f'Unknown filetype {fileformat}')
